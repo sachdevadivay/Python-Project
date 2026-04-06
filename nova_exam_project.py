@@ -1,168 +1,320 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog
-import random
+import sqlite3
 import datetime
-import string
+import time
+import math
 
-# ---------------- MAIN WINDOW ----------------
-root = tk.Tk()
-root.title("NOVA - Animated Assistant")
-root.geometry("600x700")
-root.configure(bg="#0d1117")
-root.resizable(False, False)
+# ---------------- THEME ----------------
+COLORS = {
+    "bg": "#05070a",
+    "side": "#0d1117",
+    "card": "#161b22",
+    "accent": "#58a6ff",
+    "success": "#238636",
+    "border": "#30363d",
+    "text": "#c9d1d9"
+}
 
-# -------- Fade-in Animation --------
-root.attributes("-alpha", 0.0)
+class NovaFinal:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("NOVA ULTIMATE | Divay Sachdeva")
+        self.root.geometry("1250x850")
+        self.root.configure(bg=COLORS["bg"])
 
-def fade_in(alpha=0):
-    alpha += 0.02
-    if alpha <= 1:
-        root.attributes("-alpha", alpha)
-        root.after(20, lambda: fade_in(alpha))
+        self.start_time = time.time()
+        self.admin_pass = "Sachdiv@1"
 
-fade_in()
+        self.init_db()
+        self.show_login()
 
-# ---------------- HEADER ----------------
-header = tk.Frame(root, bg="#161b22", height=120)
-header.pack(fill="x")
+    # ---------------- DATABASE ----------------
+    def init_db(self):
+        conn = sqlite3.connect("nova.db")
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS goals (id INTEGER PRIMARY KEY, task TEXT, status TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS logs (activity TEXT, time TEXT)")
+        conn.commit()
+        conn.close()
 
-title = tk.Label(
-    header,
-    text="NOVA",
-    font=("Segoe UI", 28, "bold"),
-    fg="#58a6ff",
-    bg="#161b22"
-)
-title.pack(pady=(25, 5))
+    def add_log(self, activity):
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        conn = sqlite3.connect("nova.db")
+        conn.execute("INSERT INTO logs VALUES (?, ?)", (activity, ts))
+        conn.commit()
+        conn.close()
 
-subtitle = tk.Label(
-    header,
-    text="Modern Python Assistant  |  Welcome Divay 👋",
-    font=("Segoe UI", 12),
-    fg="#c9d1d9",
-    bg="#161b22"
-)
-subtitle.pack()
+    # ---------------- LOGIN ----------------
+    def show_login(self):
+        self.clear_screen()
 
-# ---------------- CONTENT FRAME ----------------
-content = tk.Frame(root, bg="#0d1117")
-content.pack(pady=30)
+        frame = tk.Frame(self.root, bg=COLORS["side"], padx=40, pady=40)
+        frame.place(relx=0.5, rely=0.5, anchor="center")
 
-# ---------------- FUNCTIONS ----------------
+        tk.Label(frame, text="🔐 NOVA LOGIN",
+                 font=("Segoe UI", 22, "bold"),
+                 fg=COLORS["accent"], bg=COLORS["side"]).pack(pady=10)
 
-def calculator():
-    try:
-        a = float(simpledialog.askstring("Calculator", "Enter first number:"))
-        b = float(simpledialog.askstring("Calculator", "Enter second number:"))
-        op = simpledialog.askstring("Calculator", "Enter operator (+ - * /):")
+        self.p_ent = tk.Entry(frame, show="*", font=("Segoe UI", 14), width=25)
+        self.p_ent.pack(pady=20)
 
-        if op == "+": result = a + b
-        elif op == "-": result = a - b
-        elif op == "*": result = a * b
-        elif op == "/": result = a / b
-        else: result = "Invalid Operator"
+        tk.Button(frame, text="LOGIN",
+                  command=self.verify,
+                  bg=COLORS["accent"], fg="black",
+                  width=20).pack()
 
-        messagebox.showinfo("Result", f"Result: {result}")
-    except:
-        messagebox.showerror("Error", "Invalid Input")
+    def verify(self):
+        if self.p_ent.get() == self.admin_pass:
+            self.add_log("Login Success")
+            self.main_ui()
+        else:
+            messagebox.showerror("Error", "Wrong Password")
 
-def even_odd():
-    try:
-        n = int(simpledialog.askstring("Even/Odd", "Enter number:"))
-        result = "Even Number" if n % 2 == 0 else "Odd Number"
-        messagebox.showinfo("Result", result)
-    except:
-        messagebox.showerror("Error", "Invalid Input")
+    # ---------------- MAIN UI ----------------
+    def main_ui(self):
+        self.clear_screen()
 
-def table():
-    try:
-        n = int(simpledialog.askstring("Table Generator", "Enter number:"))
-        result = ""
-        for i in range(1, 11):
-            result += f"{n} x {i} = {n*i}\n"
-        messagebox.showinfo("Table", result)
-    except:
-        messagebox.showerror("Error", "Invalid Input")
+        side = tk.Frame(self.root, bg=COLORS["side"], width=260)
+        side.pack(side="left", fill="y")
 
-def joke():
-    jokes = [
-        "Why do programmers love Python? Because it is simple.",
-        "Why was the computer cold? It left Windows open.",
-        "Why did the developer go broke? Because he used up all his cache."
+        tk.Label(side, text="NOVA",
+                 fg=COLORS["accent"],
+                 bg=COLORS["side"],
+                 font=("Segoe UI", 26, "bold")).pack(pady=20)
+
+        buttons = [
+            ("🏠 Dashboard", self.dashboard),
+            ("🎯 Goals", self.goals_ui),
+            ("🧮 Math", self.math_ui),
+            ("📜 Logs", self.logs_ui),
+            ("ℹ️ About", self.about_ui)
+        ]
+
+        # ✅ ONLY CHANGE: FONT SIZE + PADDING
+        for t, cmd in buttons:
+            b = tk.Button(side, text=t,
+                          command=cmd,
+                          bg=COLORS["side"], fg="white",
+                          font=("Segoe UI", 14, "bold"),  # changed
+                          bd=0, anchor="w",
+                          padx=20, pady=8)  # added spacing
+            b.pack(fill="x", padx=20, pady=5)
+
+            b.bind("<Enter>", lambda e, btn=b: btn.config(bg=COLORS["accent"], fg="black"))
+            b.bind("<Leave>", lambda e, btn=b: btn.config(bg=COLORS["side"], fg="white"))
+
+        self.timer = tk.Label(side, fg=COLORS["accent"], bg=COLORS["side"])
+        self.timer.pack(side="bottom", pady=20)
+        self.update_timer()
+
+        self.main = tk.Frame(self.root, bg=COLORS["bg"])
+        self.main.pack(side="right", expand=True, fill="both")
+
+        self.dashboard()
+
+    # ---------------- DASHBOARD ----------------
+    def dashboard(self):
+        self.clear_main()
+
+        tk.Label(self.main,
+                 text="Nova – The Smart Assistant",
+                 font=("Segoe UI", 30, "bold"),
+                 fg=COLORS["accent"], bg=COLORS["bg"]).pack(expand=True)
+
+        tk.Label(self.main,
+                 text="Your Personal Python-Based AI System",
+                 font=("Segoe UI", 14),
+                 fg="white", bg=COLORS["bg"]).pack()
+
+        tk.Label(self.main,
+                 text="Divay Sachdeva | BTech CSE 1st Year",
+                 font=("Segoe UI", 11, "bold"),
+                 fg=COLORS["text"], bg=COLORS["bg"]).pack(side="bottom", pady=20)
+
+    # ---------------- GOALS ----------------
+    def goals_ui(self):
+        self.clear_main()
+
+        tk.Label(self.main, text="🎯 Goal Manager",
+                 font=("Segoe UI", 22, "bold"),
+                 fg=COLORS["accent"], bg=COLORS["bg"]).pack(pady=20)
+
+        container = tk.Frame(self.main, bg=COLORS["bg"])
+        container.pack()
+
+        task = tk.Entry(container, font=("Segoe UI", 12), width=30)
+        task.grid(row=0, column=0, padx=10)
+
+        def add():
+            t = task.get()
+            if t:
+                conn = sqlite3.connect("nova.db")
+                conn.execute("INSERT INTO goals (task, status) VALUES (?,?)", (t, "Pending"))
+                conn.commit()
+                conn.close()
+                self.add_log(f"Added goal: {t}")
+                self.goals_ui()
+
+        tk.Button(container, text="➕ Add",
+                  command=add,
+                  bg=COLORS["success"], fg="white").grid(row=0, column=1)
+
+        conn = sqlite3.connect("nova.db")
+        data = conn.execute("SELECT * FROM goals").fetchall()
+        conn.close()
+
+        for g in data:
+            card = tk.Frame(self.main, bg=COLORS["card"])
+            card.pack(fill="x", padx=80, pady=5)
+
+            tk.Label(card, text=g[1], fg="white", bg=COLORS["card"]).pack(side="left", padx=15)
+
+            tk.Button(card, text="✔ Done",
+                      command=lambda id=g[0]: self.mark_done(id),
+                      bg=COLORS["accent"], fg="black").pack(side="right", padx=5)
+
+            tk.Button(card, text="❌ Delete",
+                      command=lambda id=g[0]: self.delete_goal(id),
+                      bg="#ef4444", fg="white").pack(side="right", padx=5)
+
+    def mark_done(self, id):
+        conn = sqlite3.connect("nova.db")
+        conn.execute("UPDATE goals SET status='Done' WHERE id=?", (id,))
+        conn.commit()
+        conn.close()
+        self.add_log("Marked goal done")
+        self.goals_ui()
+
+    def delete_goal(self, id):
+        conn = sqlite3.connect("nova.db")
+        conn.execute("DELETE FROM goals WHERE id=?", (id,))
+        conn.commit()
+        conn.close()
+        self.add_log("Deleted goal")
+        self.goals_ui()
+
+    # ---------------- ADVANCED MATH ----------------
+    def math_ui(self):
+        self.clear_main()
+
+        tk.Label(self.main, text="🧮 Advanced Math Lab",
+                 font=("Segoe UI", 26, "bold"),
+                 fg=COLORS["accent"], bg=COLORS["bg"]).pack(pady=20)
+
+        grid = tk.Frame(self.main, bg=COLORS["bg"])
+        grid.pack()
+
+        def safe_float(p):
+            try:
+                return simpledialog.askfloat("Input", p)
+            except:
+                messagebox.showerror("Error", "Invalid Input")
+
+        funcs = [
+            ("Square", lambda: messagebox.showinfo("Result", safe_float("Enter number")**2)),
+            ("Root", lambda: messagebox.showinfo("Result", math.sqrt(safe_float("Enter number")))),
+            ("Power", lambda: messagebox.showinfo("Result", safe_float("Base")**safe_float("Exponent"))),
+            ("Log", lambda: messagebox.showinfo("Result", math.log10(safe_float("Enter number")))),
+            ("Factorial", lambda: messagebox.showinfo("Result", math.factorial(simpledialog.askinteger("Input","Enter integer")))),
+            ("Trig", lambda: messagebox.showinfo("Result", math.sin(math.radians(safe_float("Angle"))))),
+            ("Percentage", lambda: messagebox.showinfo("Result", (safe_float("Part")/safe_float("Total"))*100)),
+            ("Solve ax+b", lambda: messagebox.showinfo("Result", -safe_float("b")/safe_float("a")))
+        ]
+
+        r=c=0
+        for t,f in funcs:
+            b=tk.Button(grid,text=t,command=f,width=18,height=3,
+                        bg=COLORS["card"],fg="white",bd=0)
+            b.grid(row=r,column=c,padx=15,pady=15)
+
+            b.bind("<Enter>", lambda e,btn=b: btn.config(bg=COLORS["accent"],fg="black"))
+            b.bind("<Leave>", lambda e,btn=b: btn.config(bg=COLORS["card"],fg="white"))
+
+            c+=1
+            if c==3:
+                c=0;r+=1
+
+    # ---------------- LOGS ----------------
+    def logs_ui(self):
+        self.clear_main()
+
+        tk.Label(self.main, text="📜 Logs",
+                 font=("Segoe UI", 20, "bold"),
+                 fg=COLORS["accent"], bg=COLORS["bg"]).pack(pady=10)
+
+        txt = tk.Text(self.main, bg=COLORS["side"], fg="white")
+        txt.pack(fill="both", expand=True, padx=40, pady=10)
+
+        conn = sqlite3.connect("nova.db")
+        logs = conn.execute("SELECT * FROM logs").fetchall()
+        conn.close()
+
+        for l in logs:
+            txt.insert("end", f"{l[1]} - {l[0]}\n")
+
+    # ---------------- ABOUT ----------------
+    def about_ui(self):
+        self.clear_main()
+
+        tk.Label(self.main, text="ℹ️ About NOVA",
+             font=("Segoe UI", 28, "bold"),
+             fg=COLORS["accent"], bg=COLORS["bg"]).pack(pady=20)
+
+        canvas = tk.Canvas(self.main, bg=COLORS["bg"], highlightthickness=0)
+        scrollbar = tk.Scrollbar(self.main, orient="vertical", command=canvas.yview)
+        scroll_frame = tk.Frame(canvas, bg=COLORS["bg"])
+
+        scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True, padx=40)
+        scrollbar.pack(side="right", fill="y")
+
+        card = tk.Frame(scroll_frame, bg=COLORS["card"], padx=30, pady=25)
+        card.pack(fill="both", expand=True)
+
+        tk.Label(card, text="👨‍💻 Developer",
+             font=("Segoe UI", 16, "bold"),
+             fg=COLORS["accent"], bg=COLORS["card"]).pack(anchor="w")
+
+        tk.Label(card, text="Divay Sachdeva\nBTech CSE | 1st Year",
+             fg="white", bg=COLORS["card"]).pack(anchor="w", pady=10)
+
+        tk.Label(card, text="📚 Topics Covered",
+             font=("Segoe UI", 16, "bold"),
+             fg=COLORS["accent"], bg=COLORS["card"]).pack(anchor="w")
+
+        topics = [
+        "Python Basics (Variables, Data Types)",
+        "Control Structures (Loops, Conditions)",
+        "Functions & Modular Programming",
+        "Object-Oriented Programming (Classes & Objects)",
+        "SQLite Database (CRUD Operations)",
+        "GUI Development using Tkinter",
+        "Mathematical Computation using math module",
+        "Error Handling (try-except)"
     ]
-    messagebox.showinfo("Joke", random.choice(jokes))
 
-def password():
-    try:
-        length = int(simpledialog.askstring("Password", "Enter length:"))
-        chars = string.ascii_letters + string.digits
-        pwd = "".join(random.choice(chars) for _ in range(length))
-        messagebox.showinfo("Generated Password", pwd)
-    except:
-        messagebox.showerror("Error", "Invalid Length")
+        for t in topics:
+            tk.Label(card, text="✔ " + t, fg="white", bg=COLORS["card"]).pack(anchor="w")
 
-def show_date():
-    messagebox.showinfo("Date", datetime.datetime.now().strftime("%d %B %Y"))
+    # ---------------- TIMER ----------------
+    def update_timer(self):
+        t = int(time.time() - self.start_time)
+        self.timer.config(text=f"{t}s")
+        self.root.after(1000, self.update_timer)
 
-def show_time():
-    messagebox.showinfo("Time", datetime.datetime.now().strftime("%H:%M:%S"))
+    def clear_screen(self):
+        for w in self.root.winfo_children():
+            w.destroy()
 
-# ---------------- BUTTON STYLE WITH ANIMATION ----------------
+    def clear_main(self):
+        for w in self.main.winfo_children():
+            w.destroy()
 
-def create_button(text, command):
-    btn = tk.Button(
-        content,
-        text=text,
-        command=command,
-        font=("Segoe UI", 13),
-        width=30,
-        height=2,
-        bg="#21262d",
-        fg="white",
-        bd=0,
-        cursor="hand2"
-    )
-
-    # Hover animation
-    def on_enter(e):
-        btn.config(bg="#58a6ff", fg="black")
-
-    def on_leave(e):
-        btn.config(bg="#21262d", fg="white")
-
-    btn.bind("<Enter>", on_enter)
-    btn.bind("<Leave>", on_leave)
-
-    return btn
-
-# ---------------- BUTTONS ----------------
-
-create_button("🧮  Calculator", calculator).pack(pady=8)
-create_button("🔢  Even / Odd Checker", even_odd).pack(pady=8)
-create_button("📊  Table Generator", table).pack(pady=8)
-create_button("😂  Joke Teller", joke).pack(pady=8)
-create_button("🔐  Password Generator", password).pack(pady=8)
-create_button("📅  Show Date", show_date).pack(pady=8)
-create_button("⏰  Show Time", show_time).pack(pady=8)
-
-# Exit button
-exit_btn = tk.Button(
-    root,
-    text="Exit Application",
-    command=root.destroy,
-    font=("Segoe UI", 13, "bold"),
-    width=30,
-    height=2,
-    bg="#da3633",
-    fg="white",
-    bd=0,
-    cursor="hand2"
-)
-exit_btn.pack(pady=30)
-
-# Exit hover animation
-exit_btn.bind("<Enter>", lambda e: exit_btn.config(bg="#ff7b72"))
-exit_btn.bind("<Leave>", lambda e: exit_btn.config(bg="#da3633"))
-
+# ---------------- RUN ----------------
+root = tk.Tk()
+app = NovaFinal(root)
 root.mainloop()
-
