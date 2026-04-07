@@ -1,7 +1,7 @@
 # 🌌 NOVA ULTIMATE 🚀
 
 <p align="center">
-  <img src="nova_logo.png" width="150"/>
+  <img src="Nova and the glowing platform.png" width="150"/>
 </p>
 
 <p align="center">
