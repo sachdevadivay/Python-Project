@@ -4,9 +4,7 @@
   <img src="Nova and the glowing platform.png" width="150"/>
 </p>
 
-<p align="center">
-  <img src="nova_character.gif" width="200"/>
-</p>
+
 
 ## 🚀 Smart Python-Based Assistant
 
